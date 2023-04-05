@@ -6,7 +6,7 @@ import { v2 as cloudinary } from "cloudinary";
 
 dotenv.config();
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API3,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 const openai = new OpenAIApi(configuration); // Initialize  OpenAI API  instance
@@ -24,19 +24,16 @@ export const generatePost = async (req, res) => {
     const imageResponse = await openai.createImage({
       prompt: description,
       n: 1,
-      size: "256x256",
-      // size: "1024x1024",
-      // response_format: "b64_json",
+      // size: "256x256",
+      size: "1024x1024",
     });
     // console.log("call to openai");
-    // const image = imageResponse.data.data[0].b64_json;
     const image = imageResponse.data.data[0].url;
 
     res.status(200).json({
       success: true,
       photo: image,
     });
-    // res.status(200).json({ photo: image });
   } catch (error) {
     if (error.response) {
       console.log(error.response.status);
@@ -55,22 +52,17 @@ export const generatePost = async (req, res) => {
 /* CREATE */
 export const createPost = async (req, res) => {
   try {
-    // I need to do a change here for generating picture
-    // and posting
     const { userId, description, photo } = req.body;
-    // const { userId, description, picturePath } = req.body;
     const user = await User.findById(userId);
 
     const photoUrl = await cloudinary.uploader.upload(photo);
 
-    // console.log(photoUrl.url);
     const newPost = new Post({
       userId,
       firstName: user.firstName,
       lastName: user.lastName,
       location: user.location,
       description,
-      // userPicturePath: photoUrl.url,
       userPicturePath: user.picturePath,
       picturePath: photoUrl.url,
       likes: {},
@@ -80,7 +72,7 @@ export const createPost = async (req, res) => {
     });
     await newPost.save();
 
-    const post = await Post.find();
+    const post = await Post.find().sort({ createdAt: "desc" });
     res.status(201).json(post);
   } catch (err) {
     res.status(409).json({ message: err.message });
@@ -90,7 +82,7 @@ export const createPost = async (req, res) => {
 /* READ */
 export const getFeedPosts = async (req, res) => {
   try {
-    const post = await Post.find();
+    const post = await Post.find().sort({ createdAt: "desc" });
     res.status(200).json(post);
   } catch (err) {
     res.status(404).json({ message: err.message });
